@@ -54,7 +54,6 @@ func main() {
 	for {
 		select {
 		case event := <-watcher.Event:
-			fmt.Printf("Caught event %s\n", event)
 			if event.IsModify() || event.IsCreate() || event.IsDelete() || event.IsRename() {
 				select {
 				case needrun <- true:
