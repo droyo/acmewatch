@@ -12,7 +12,7 @@ import (
 	"sync"
 
 	"9fans.net/go/acme"
-	"golang.org/x/exp/fsnotify"
+	"gopkg.in/fsnotify.v1"
 )
 
 var args []string
@@ -47,20 +47,29 @@ func main() {
 	go runner()
 
 	watcher, err := fsnotify.NewWatcher()
-	if err := watcher.Watch("."); err != nil {
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer watcher.Close()
+	if err := watcher.Add("."); err != nil {
 		log.Fatal(err)
 	}
 
+	const modifyFlags = fsnotify.Create |
+		fsnotify.Write |
+		fsnotify.Remove |
+		fsnotify.Rename
+
 	for {
 		select {
-		case event := <-watcher.Event:
-			if event.IsModify() || event.IsCreate() || event.IsDelete() || event.IsRename() {
+		case event := <-watcher.Events:
+			if event.Op&modifyFlags > 0 {
 				select {
 				case needrun <- true:
 				default:
 				}
 			}
-		case err := <-watcher.Error:
+		case err := <-watcher.Errors:
 			log.Fatal(err)
 		}
 	}
